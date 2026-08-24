@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: netshield-config
+  labels:
+    app: netshield-ai
+data:
+  PORT: "8000"
+  PYTHONUNBUFFERED: "1"
+  LOG_LEVEL: "info"
+  MODEL_NAME: "IsolationForest"

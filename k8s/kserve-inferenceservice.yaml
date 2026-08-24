@@ -1,0 +1,27 @@
+apiVersion: "serving.kserve.io/v1beta1"
+kind: "InferenceService"
+metadata:
+  name: "netshield-anomaly-detector"
+  labels:
+    app: netshield-ai
+    framework: sklearn
+  annotations:
+    serving.kserve.io/enable-prometheus-scraping: "true"
+    autoscaling.knative.dev/target: "50"
+    autoscaling.knative.dev/min-scale: "1"
+    autoscaling.knative.dev/max-scale: "5"
+spec:
+  predictor:
+    serviceAccountName: default
+    model:
+      modelFormat:
+        name: sklearn
+      protocolVersion: v2
+      storageUri: "pvc://netshield-storage-pvc/models/isolation_forest.pkl"
+      resources:
+        requests:
+          cpu: "250m"
+          memory: "512Mi"
+        limits:
+          cpu: "1000m"
+          memory: "1Gi"
