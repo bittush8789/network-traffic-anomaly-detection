@@ -52,6 +52,7 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main
 
 # 6. Apply NetShield Kubernetes Manifests
 Write-Host "[Kubernetes] Applying NetShield manifests..." -ForegroundColor Cyan
+kubectl apply -f k8s/serviceaccount.yaml
 kubectl apply -f k8s/pvc.yaml
 kubectl apply -f k8s/configmap.yaml
 kubectl apply -f k8s/deployment.yaml

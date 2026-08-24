@@ -173,9 +173,9 @@ Visit [http://localhost:8000](http://localhost:8000) in your browser.
 
 ## ☸️ Production Deployment with Kubernetes (KinD) & KServe
 
-NetShield AI includes full production-ready **Kubernetes manifests** and a **KinD (Kubernetes in Docker)** multi-node setup with **Horizontal Pod Autoscaling (HPA)**, Ingress routing, and **KServe InferenceService** descriptors in the [`k8s/`](k8s/) directory.
+NetShield AI includes production-ready **Kubernetes manifests** (`k8s/`), a **KinD (Kubernetes in Docker)** multi-node setup with **Horizontal Pod Autoscaling (HPA)**, Ingress routing, dedicated **ServiceAccounts / RBAC**, and a standalone **KServe** configuration in [`kserve/`](kserve/).
 
-### Quick Automated Deployment:
+### 1. Kubernetes (KinD) Cluster Deployment:
 
 **Windows PowerShell:**
 ```powershell
@@ -188,16 +188,9 @@ chmod +x k8s/deploy_kind.sh
 ./k8s/deploy_kind.sh
 ```
 
-### Manual Kubernetes Deployment:
+**Manual Manifest Application:**
 ```bash
-# 1. Create KinD multi-node cluster
-kind create cluster --name netshield-cluster --config k8s/kind-config.yaml
-
-# 2. Build & load image into KinD nodes
-docker build -t netshield-ai:latest .
-kind load docker-image netshield-ai:latest --name netshield-cluster
-
-# 3. Apply Kubernetes manifests
+kubectl apply -f k8s/serviceaccount.yaml
 kubectl apply -f k8s/pvc.yaml
 kubectl apply -f k8s/configmap.yaml
 kubectl apply -f k8s/deployment.yaml
@@ -206,13 +199,18 @@ kubectl apply -f k8s/hpa.yaml
 kubectl apply -f k8s/ingress.yaml
 ```
 
-### KServe ML Model Serving:
+---
+
+### 2. Standalone KServe ML Model Serving (`kserve/`):
 ```bash
-# Apply KServe custom InferenceService
-kubectl apply -f k8s/kserve-inferenceservice.yaml
+# 1. Apply dedicated KServe ServiceAccount
+kubectl apply -f kserve/serviceaccount.yaml
+
+# 2. Deploy KServe InferenceService
+kubectl apply -f kserve/inferenceservice.yaml
 ```
 
-For complete setup instructions, Knative installation, and debugging commands, see [`k8s/README.md`](k8s/README.md).
+For complete setup instructions, Knative installation, and v2 test requests, see [`kserve/README.md`](kserve/README.md) and [`k8s/README.md`](k8s/README.md).
 
 ---
 

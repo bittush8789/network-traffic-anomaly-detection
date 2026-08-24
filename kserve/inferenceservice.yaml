@@ -12,7 +12,7 @@ metadata:
     autoscaling.knative.dev/max-scale: "5"
 spec:
   predictor:
-    serviceAccountName: default
+    serviceAccountName: kserve-model-sa
     model:
       modelFormat:
         name: sklearn

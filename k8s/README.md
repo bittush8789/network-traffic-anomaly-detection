@@ -8,16 +8,18 @@ This directory contains production-ready **Kubernetes (K8s)** manifests, a **Kin
 
 | File | Purpose |
 |---|---|
+| [`serviceaccount.yaml`](serviceaccount.yaml) | Dedicated `ServiceAccount` (`netshield-sa`), `Role`, and `RoleBinding` for pod RBAC. |
 | [`kind-config.yaml`](kind-config.yaml) | 3-node KinD cluster (1 control-plane, 2 workers) with ingress port mapping (`80`, `443`, `8000`, `9090`). |
-| [`deployment.yaml`](deployment.yaml) | High-availability Deployment (`replicas: 2`, RollingUpdate, CPU/Memory limits, Liveness & Readiness probes). |
+| [`deployment.yaml`](deployment.yaml) | High-availability Deployment (`replicas: 2`, RollingUpdate, CPU/Memory limits, Liveness & Readiness probes, `serviceAccountName`). |
 | [`service.yaml`](service.yaml) | `ClusterIP` service (port 80) and `NodePort` service (port 30080 $\rightarrow$ host 8000). |
 | [`ingress.yaml`](ingress.yaml) | NGINX Ingress controller rules with timeout & body size settings. |
 | [`pvc.yaml`](pvc.yaml) | PersistentVolumeClaim (`netshield-storage-pvc`) for SQLite database, models, and MLflow data. |
 | [`configmap.yaml`](configmap.yaml) | Production environment configuration. |
 | [`hpa.yaml`](hpa.yaml) | Horizontal Pod Autoscaler ($2$ to $10$ pods based on $70\%$ CPU utilization). |
-| [`kserve-inferenceservice.yaml`](kserve-inferenceservice.yaml) | KServe v2 custom resource for high-performance Scikit-learn model serving with autoscaling. |
 | [`deploy_kind.ps1`](deploy_kind.ps1) | Automated deployment script for Windows PowerShell. |
 | [`deploy_kind.sh`](deploy_kind.sh) | Automated deployment script for Linux/macOS. |
+
+> 💡 **Looking for KServe ML Serving?** See the dedicated [`kserve/`](../kserve/) folder.
 
 ---
 

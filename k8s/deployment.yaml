@@ -25,6 +25,7 @@ spec:
         prometheus.io/port: "8000"
         prometheus.io/path: "/metrics"
     spec:
+      serviceAccountName: netshield-sa
       containers:
         - name: netshield-app
           image: netshield-ai:latest
