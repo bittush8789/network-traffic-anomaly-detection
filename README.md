@@ -203,3 +203,9 @@ Visit [http://localhost:8000](http://localhost:8000) in your browser.
    - **Port Scanning**: Flag in `["S0", "REJ"]` or fast probes with $\le 3$ packets.
    - **Brute-Force Behavior**: Repeated failed connections ($\ge 3$) on sensitive ports ($22, 21, 3389$).
    - **Data Exfiltration**: Abnormal outbound payload ($> 500 \text{ KB}$).
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
