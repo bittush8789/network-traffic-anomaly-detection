@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NetShield AI - ML Network Traffic Anomaly Detection</title>
+  
+  <!-- Google Fonts & Chart.js -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="dark-theme">
+  <!-- Top Navigation -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <div class="radar-container">
+        <div class="radar-pulse"></div>
+        <i class="fa-solid fa-shield-halved brand-icon"></i>
+      </div>
+      <div class="brand-text">
+        <h1>NetShield <span class="brand-ai">AI</span></h1>
+        <span class="sub-brand">Network Traffic Anomaly Detection System</span>
+      </div>
+    </div>
+
+    <div class="nav-controls">
+      <div class="system-status-badge online" id="systemStatusBadge">
+        <span class="status-dot"></span>
+        <span id="statusText">SYSTEM ONLINE</span>
+      </div>
+
+      <div class="action-buttons">
+        <button id="liveSimToggleBtn" class="btn btn-outline-cyan">
+          <i class="fa-solid fa-play"></i> <span id="simBtnText">Live Simulator</span>
+        </button>
+        <button id="uploadModalOpenBtn" class="btn btn-secondary">
+          <i class="fa-solid fa-file-arrow-up"></i> Upload CSV
+        </button>
+        <button id="trainModalOpenBtn" class="btn btn-primary">
+          <i class="fa-solid fa-brain"></i> Train Model
+        </button>
+        <a href="/metrics" target="_blank" class="btn btn-icon" title="Prometheus Metrics Endpoint">
+          <i class="fa-solid fa-chart-line"></i>
+        </a>
+        <button id="clearDbBtn" class="btn btn-danger-icon" title="Reset Traffic History">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="dashboard-container">
+    
+    <!-- KPI Stats Cards -->
+    <section class="kpi-grid">
+      <div class="kpi-card" id="cardTotalFlows">
+        <div class="kpi-icon-wrap cyan">
+          <i class="fa-solid fa-network-wired"></i>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">TOTAL FLOWS ANALYZED</span>
+          <h2 class="kpi-value" id="kpiTotalFlows">0</h2>
+          <span class="kpi-subtext"><i class="fa-solid fa-arrow-trend-up"></i> Real-time Ingestion</span>
+        </div>
+      </div>
+
+      <div class="kpi-card" id="cardAnomalies">
+        <div class="kpi-icon-wrap red">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">ANOMALIES DETECTED</span>
+          <h2 class="kpi-value alert-red" id="kpiAnomalies">0</h2>
+          <span class="kpi-subtext" id="kpiAnomalyRateSub">0.00% anomaly rate</span>
+        </div>
+      </div>
+
+      <div class="kpi-card" id="cardCritical">
+        <div class="kpi-icon-wrap amber">
+          <i class="fa-solid fa-fire"></i>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">CRITICAL / HIGH ALERTS</span>
+          <h2 class="kpi-value alert-amber" id="kpiCritical">0</h2>
+          <span class="kpi-subtext">Immediate Attention</span>
+        </div>
+      </div>
+
+      <div class="kpi-card" id="cardModelHealth">
+        <div class="kpi-icon-wrap purple">
+          <i class="fa-solid fa-microchip"></i>
+        </div>
+        <div class="kpi-info">
+          <span class="kpi-label">ISOLATION FOREST MODEL</span>
+          <h2 class="kpi-value" id="kpiModelStatus">ACTIVE</h2>
+          <span class="kpi-subtext" id="kpiModelParams">Contam: 0.05 | Trees: 100</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Visual Grid -->
+    <div class="analytics-layout">
+      <!-- Left Column: Visual Analytics & Inspector -->
+      <div class="analytics-main">
+        <!-- Traffic Timeline Chart -->
+        <div class="panel-card chart-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i class="fa-solid fa-chart-area"></i>
+              <h3>Network Flow & Anomaly Volume Timeline</h3>
+            </div>
+            <div class="panel-actions">
+              <button class="btn btn-sm btn-ghost" id="refreshTimelineBtn">
+                <i class="fa-solid fa-arrows-rotate"></i> Refresh
+              </button>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="timelineChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Real-Time Packet Inspector & Single Test -->
+        <div class="panel-card inspector-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i class="fa-solid fa-magnifying-glass-chart"></i>
+              <h3>Real-Time Packet Flow Inspector</h3>
+            </div>
+            <div class="panel-actions">
+              <button type="button" class="btn btn-sm btn-outline-cyan" id="quickTestDDoSBtn">Load DDoS Preset</button>
+              <button type="button" class="btn btn-sm btn-outline-cyan" id="quickTestPortScanBtn">Load Scan Preset</button>
+              <button type="button" class="btn btn-sm btn-outline-cyan" id="quickTestBruteBtn">Load Brute-Force</button>
+            </div>
+          </div>
+
+          <div class="inspector-grid">
+            <form id="singlePacketForm" class="packet-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="srcIp">Source IP</label>
+                  <input type="text" id="srcIp" name="src_ip" value="192.168.1.105" required>
+                </div>
+                <div class="form-group">
+                  <label for="dstIp">Destination IP</label>
+                  <input type="text" id="dstIp" name="dst_ip" value="104.244.42.1" required>
+                </div>
+                <div class="form-group">
+                  <label for="protocol">Protocol</label>
+                  <select id="protocol" name="protocol">
+                    <option value="TCP">TCP</option>
+                    <option value="UDP">UDP</option>
+                    <option value="ICMP">ICMP</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="srcPort">Source Port</label>
+                  <input type="number" id="srcPort" name="src_port" value="49230" min="0" max="65535" required>
+                </div>
+                <div class="form-group">
+                  <label for="dstPort">Destination Port</label>
+                  <input type="number" id="dstPort" name="dst_port" value="443" min="0" max="65535" required>
+                </div>
+                <div class="form-group">
+                  <label for="flag">TCP Flag</label>
+                  <select id="flag" name="flag">
+                    <option value="SF">SF (Normal Syn/Fin)</option>
+                    <option value="S0">S0 (Syn No Ack / Scan)</option>
+                    <option value="REJ">REJ (Rejected)</option>
+                    <option value="RSTO">RSTO (Reset Originator)</option>
+                    <option value="SH">SH (Syn + Half Close)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="packetCount">Packet Count</label>
+                  <input type="number" id="packetCount" name="packet_count" value="12" min="1" required>
+                </div>
+                <div class="form-group">
+                  <label for="byteCount">Byte Count</label>
+                  <input type="number" id="byteCount" name="byte_count" value="3850" min="0" required>
+                </div>
+                <div class="form-group">
+                  <label for="duration">Duration (sec)</label>
+                  <input type="number" step="0.001" id="duration" name="duration" value="0.125" min="0" required>
+                </div>
+                <div class="form-group">
+                  <label for="failedConns">Failed Connections</label>
+                  <input type="number" id="failedConns" name="failed_connections" value="0" min="0" required>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-block" id="evaluateFlowBtn">
+                <i class="fa-solid fa-bolt"></i> Evaluate Flow With ML Model
+              </button>
+            </form>
+
+            <!-- Real-Time Evaluation Result Box -->
+            <div class="evaluation-result-box" id="evalResultBox">
+              <div class="gauge-container">
+                <div class="score-circle" id="scoreCircle">
+                  <span class="score-number" id="evalScore">0.0</span>
+                  <span class="score-unit">/ 100</span>
+                </div>
+                <span class="gauge-caption">Anomaly Score</span>
+              </div>
+              <div class="eval-details">
+                <div class="eval-status-row">
+                  <span class="eval-label">Severity Level:</span>
+                  <span class="severity-badge sev-normal" id="evalSeverity">Normal</span>
+                </div>
+                <div class="eval-status-row">
+                  <span class="eval-label">Behavior Diagnosis:</span>
+                  <span class="behavior-badge" id="evalDiagnosis">Benign Traffic</span>
+                </div>
+                <div class="eval-status-row">
+                  <span class="eval-label">Inference Latency:</span>
+                  <span class="mono-text" id="evalLatency">0.0 ms</span>
+                </div>
+                <div class="eval-status-row">
+                  <span class="eval-label">Detection Flag:</span>
+                  <span class="status-pill" id="evalAnomalyFlag">NO ANOMALY</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Breakdowns & Feeds -->
+      <div class="analytics-side">
+        <!-- Severity Donut Chart -->
+        <div class="panel-card side-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i class="fa-solid fa-chart-pie"></i>
+              <h3>Severity Breakdown</h3>
+            </div>
+          </div>
+          <div class="donut-container">
+            <canvas id="severityDonutChart"></canvas>
+          </div>
+          <div class="severity-legend-grid" id="severityLegend">
+            <div class="legend-item"><span class="dot sev-critical"></span> Critical: <strong id="cntCritical">0</strong></div>
+            <div class="legend-item"><span class="dot sev-high"></span> High: <strong id="cntHigh">0</strong></div>
+            <div class="legend-item"><span class="dot sev-medium"></span> Medium: <strong id="cntMedium">0</strong></div>
+            <div class="legend-item"><span class="dot sev-low"></span> Low: <strong id="cntLow">0</strong></div>
+            <div class="legend-item"><span class="dot sev-normal"></span> Normal: <strong id="cntNormal">0</strong></div>
+          </div>
+        </div>
+
+        <!-- Top Suspicious Source IPs -->
+        <div class="panel-card side-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i class="fa-solid fa-crosshairs"></i>
+              <h3>Top Suspicious Source IPs</h3>
+            </div>
+          </div>
+          <div class="top-ips-list" id="topIpsList">
+            <div class="empty-state">No anomalies detected yet</div>
+          </div>
+        </div>
+
+        <!-- Live Incident Feed Ticker -->
+        <div class="panel-card side-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i class="fa-solid fa-bell"></i>
+              <h3>Recent Security Incidents</h3>
+            </div>
+            <span class="live-pulse-badge">LIVE</span>
+          </div>
+          <div class="incident-feed" id="incidentFeed">
+            <div class="empty-state">Awaiting real-time alerts...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filterable Network Logs Table -->
+    <section class="panel-card logs-panel">
+      <div class="panel-header table-header-flex">
+        <div class="panel-title">
+          <i class="fa-solid fa-list-check"></i>
+          <h3>Network Flow Telemetry & Anomaly Logs</h3>
+        </div>
+
+        <div class="table-filters">
+          <div class="search-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="filterSearchIp" placeholder="Search IP address...">
+          </div>
+
+          <select id="filterSeverity" class="filter-select">
+            <option value="all">All Severities</option>
+            <option value="Critical">Critical</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+            <option value="Normal">Normal</option>
+          </select>
+
+          <select id="filterProtocol" class="filter-select">
+            <option value="all">All Protocols</option>
+            <option value="TCP">TCP</option>
+            <option value="UDP">UDP</option>
+            <option value="ICMP">ICMP</option>
+          </select>
+
+          <label class="checkbox-filter">
+            <input type="checkbox" id="filterAnomalyOnly">
+            <span>Anomalies Only</span>
+          </label>
+
+          <button class="btn btn-sm btn-secondary" id="applyFiltersBtn">
+            <i class="fa-solid fa-filter"></i> Filter
+          </button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="traffic-table" id="trafficTable">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Source IP:Port</th>
+              <th>Destination IP:Port</th>
+              <th>Protocol</th>
+              <th>Packets / Bytes</th>
+              <th>Duration</th>
+              <th>Flag</th>
+              <th>Anomaly Score</th>
+              <th>Severity</th>
+              <th>Behavior Diagnosis</th>
+            </tr>
+          </thead>
+          <tbody id="trafficTableBody">
+            <tr>
+              <td colspan="10" class="text-center py-4">Loading traffic telemetry...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="table-pagination">
+        <span class="pagination-info" id="paginationInfo">Showing 0 of 0 records</span>
+        <div class="pagination-controls">
+          <button class="btn btn-sm btn-ghost" id="prevPageBtn" disabled><i class="fa-solid fa-chevron-left"></i> Previous</button>
+          <span class="current-page-num" id="currentPageNum">Page 1</span>
+          <button class="btn btn-sm btn-ghost" id="nextPageBtn">Next <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Upload CSV Modal -->
+  <div class="modal-overlay" id="uploadModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <h3>Upload Network Traffic CSV</h3>
+        </div>
+        <button class="modal-close" id="uploadModalCloseBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Upload raw network capture telemetry in CSV format to perform batch anomaly scoring with the Isolation Forest model.</p>
+        
+        <div class="drop-zone" id="dropZone">
+          <i class="fa-solid fa-file-csv drop-icon"></i>
+          <p>Drag & drop your <code>.csv</code> file here or <span class="browse-link">browse</span></p>
+          <span class="file-name-preview" id="fileNamePreview">No file selected</span>
+          <input type="file" id="csvFileInput" accept=".csv" class="file-input-hidden">
+        </div>
+
+        <div class="upload-progress-container" id="uploadProgressContainer">
+          <div class="progress-bar-wrap">
+            <div class="progress-bar" id="uploadProgressBar"></div>
+          </div>
+          <span class="progress-status" id="uploadProgressStatus">Processing batch ML inferences...</span>
+        </div>
+
+        <div class="upload-result-summary" id="uploadResultSummary"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="uploadCancelBtn">Cancel</button>
+        <button class="btn btn-primary" id="uploadSubmitBtn" disabled>
+          <i class="fa-solid fa-upload"></i> Analyze Dataset
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Retrain Model Modal with MLflow integration -->
+  <div class="modal-overlay" id="trainModal">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-sliders"></i>
+          <h3>Retrain Isolation Forest & MLflow Tracking</h3>
+        </div>
+        <button class="modal-close" id="trainModalCloseBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="train-config-grid">
+          <!-- Form Config -->
+          <div class="train-form-col">
+            <h4>Hyperparameter Configuration</h4>
+            <div class="form-group mb-3">
+              <label for="sliderContamination">Contamination Factor: <strong id="lblContamination">0.05</strong></label>
+              <input type="range" id="sliderContamination" min="0.01" max="0.25" step="0.01" value="0.05" class="custom-range">
+              <span class="help-text">Estimated proportion of outliers in the network dataset.</span>
+            </div>
+
+            <div class="form-group mb-3">
+              <label for="sliderEstimators">Number of Estimators (Trees): <strong id="lblEstimators">100</strong></label>
+              <input type="range" id="sliderEstimators" min="50" max="300" step="10" value="100" class="custom-range">
+              <span class="help-text">Number of decision trees in the Isolation Forest ensemble.</span>
+            </div>
+
+            <div class="form-group mb-3">
+              <label class="checkbox-filter">
+                <input type="checkbox" id="chkUseDb">
+                <span>Train on existing SQLite records (instead of base CSV)</span>
+              </label>
+            </div>
+
+            <button class="btn btn-primary btn-block" id="startTrainingBtn">
+              <i class="fa-solid fa-gears"></i> Retrain & Log to MLflow
+            </button>
+          </div>
+
+          <!-- Training History & MLflow Runs -->
+          <div class="train-history-col">
+            <h4>Past Model Runs & MLflow Experiments</h4>
+            <div class="runs-list" id="runsList">
+              <div class="empty-state">Loading training runs...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- JavaScript -->
+  <script src="/static/script.js"></script>
+</body>
+</html>

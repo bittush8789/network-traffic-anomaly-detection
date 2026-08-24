@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # NetShield AI FastAPI Application & ML Anomaly Detection Engine
+  netshield-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: netshield-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./mlruns:/app/mlruns
+    environment:
+      - PORT=8000
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - netshield-network
+
+  # Prometheus Server for Real-Time Metric Scraping
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: netshield-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    depends_on:
+      - netshield-app
+    networks:
+      - netshield-network
+
+networks:
+  netshield-network:
+    driver: bridge
+
+volumes:
+  prometheus-data:
